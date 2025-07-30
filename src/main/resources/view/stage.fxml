@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+
+<AnchorPane prefHeight="600.0" prefWidth="800.0" style="-fx-background-image: url(/img/fondo_tablero.jpg);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.StageController">
+    <children>
+        <Label fx:id="statusLabel" layoutX="417.0" layoutY="557.0" style="-fx-font-size: 14px; -fx-font-weight: bold;" text="Preparando juego..." textFill="WHITE" />
+
+        <GridPane fx:id="gameGrid" gridLinesVisible="true" layoutX="185.0" layoutY="59.0" prefHeight="482.0" prefWidth="594.0" style="-fx-background-color: white;">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            </rowConstraints>
+        </GridPane>
+        <Button fx:id="showOpponentButton" layoutX="11.0" layoutY="58.0" onAction="#toggleOpponentBoard" prefHeight="25.0" prefWidth="150.0" style="-fx-font-size: 10px;" text="Show opponent's board" />
+
+        <GridPane fx:id="opponentGrid" gridLinesVisible="true" layoutX="29.0" layoutY="90.0" prefHeight="240.0" prefWidth="300.0" style="-fx-background-color: white;" visible="false">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            </rowConstraints>
+        </GridPane>
+        <Label layoutX="212.0" layoutY="33.0" text="1" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="269.0" layoutY="33.0" text="2" textFill="WHITE" />
+        <Label layoutX="329.0" layoutY="33.0" text="3" textFill="WHITE" />
+        <Label layoutX="387.0" layoutY="33.0" text="4" textFill="WHITE" />
+        <Label layoutX="447.0" layoutY="33.0" text="5" textFill="WHITE" />
+        <Label layoutX="505.0" layoutY="33.0" text="6" textFill="WHITE" />
+        <Label layoutX="564.0" layoutY="33.0" text="7" textFill="WHITE" />
+        <Label layoutX="625.0" layoutY="33.0" text="8" textFill="WHITE" />
+        <Label layoutX="684.0" layoutY="33.0" text="9" textFill="WHITE" />
+        <Label layoutX="742.0" layoutY="33.0" text="10" textFill="WHITE" />
+
+        <Label layoutX="161.0" layoutY="76.0" text="A" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="124.0" text="B" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="173.0" text="C" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="221.0" text="D" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="271.0" text="E" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="319.0" text="F" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="363.0" text="G" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="161.0" layoutY="412.0" text="H" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="162.0" layoutY="460.0" text="I" textAlignment="CENTER" textFill="WHITE" />
+        <Label layoutX="162.0" layoutY="508.0" text="J" textAlignment="CENTER" textFill="WHITE" />
+    </children>
+</AnchorPane>

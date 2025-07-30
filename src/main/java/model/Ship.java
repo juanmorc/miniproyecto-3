@@ -50,10 +50,10 @@ public abstract class Ship implements Serializable {
         this.orientation = orientation;
     }
 
-    public void addOcuppiedCell(Cell cell) {
+    public void addOccupiedCell(Cell cell) {
         this.occupiedCells.add(cell);
         cell.setShipPart(this);
-        cell.setCellState(CellState.SUNK_SHIP_PART);
+        cell.setCellState(CellState.SHIP_PART);
     }
 
     public boolean registerHit() {
@@ -73,6 +73,5 @@ public abstract class Ship implements Serializable {
     public void reset(){
         this.hits = 0;
         this.sunk = false;
-        this.occupiedCells.clear();
     }
 }

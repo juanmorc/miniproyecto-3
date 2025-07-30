@@ -1,0 +1,18 @@
+.boton-juego {
+    -fx-background-color: linear-gradient(to bottom, #007bff, #0056b3);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: #003366;
+    -fx-border-width: 8px;
+    -fx-padding: 10 25;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 3, 0, 0, 2);
+}
+
+.boton-juego:hover {
+    -fx-background-color: linear-gradient(to bottom, #e74c3c, #c0392b);
+    -fx-border-color: #7b241c;
+}
