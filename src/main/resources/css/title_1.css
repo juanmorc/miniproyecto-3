@@ -1,0 +1,7 @@
+.label-title {
+    -fx-font-family: "Bernard MT Condensed";
+    -fx-font-size: 96px;
+    -fx-text-fill: #EEE8AA ;
+    -fx-effect: dropshadow(one-pass-box, whitesmoke, 2, 0.0, 0, 0);
+
+}
