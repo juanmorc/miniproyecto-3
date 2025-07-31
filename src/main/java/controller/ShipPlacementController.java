@@ -16,25 +16,59 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Controller for the ship placement phase of the naval battle game.
+ * Handles the user interface for placing ships on the board before starting the game.
+ * Provides functionality for manual placement, preview visualization, random placement,
+ * and validation of ship positions.
+ *
+ * @author [Your name]
+ * @version 1.0
+ * @since 2025
+ */
+
 public class ShipPlacementController {
+    /** Grid where ships are placed by the player */
     @FXML private GridPane placementGrid;
+
+    /** Small grid showing preview of selected ship */
     @FXML private GridPane previewGrid;
 
+    /** Radio buttons for ship type selection */
     @FXML private RadioButton aircraftCarrierRadio, submarineRadio, destroyerRadio, frigateRadio;
+
+    /** Radio buttons for orientation selection */
     @FXML private RadioButton horizontalRadio, verticalRadio;
 
+    /** Labels showing remaining count for each ship type */
     @FXML private Label aircraftCarrierCount, submarineCount, destroyerCount, frigateCount;
+
+    /** Label showing current status and messages to the user */
     @FXML private Label statusLabel;
 
+    /** Control buttons for various actions */
     @FXML private Button clearBoardButton, randomPlacementButton, startGameButton, backButton;
 
+    /** Toggle groups for mutually exclusive radio button selections */
     @FXML private ToggleGroup shipTypeGroup, orientationGroup;
 
+    /** Matrix of buttons representing the placement board cells */
     private Button[][] gridButtons;
+
+    /** Matrix of buttons for the ship preview display */
     private Button[][] previewButtons;
+
+    /** The player's board where ships will be placed */
     private Board playerBoard;
+
+    /** Map tracking remaining ships of each type */
     private Map<ShipType, Integer> shipCounts;
 
+    /**
+     * Initializes the controller and all UI components.
+     * Called automatically after FXML loading.
+     * Sets up the board, ship counts, buttons, and event listeners.
+     */
     @FXML
     public void initialize() {
         initializeBoard();
@@ -53,11 +87,16 @@ public class ShipPlacementController {
         updatePreview();
         updateStartButtonState();
     }
-
+    /**
+     * Initializes an empty player board.
+     */
     private void initializeBoard() {
         playerBoard = new Board();
     }
-
+    /**
+     * Initializes the ship count map with the standard fleet configuration.
+     * Sets the number of available ships for each type according to game rules.
+     */
     private void initializeShipCounts() {
         shipCounts = new HashMap<>();
         shipCounts.put(ShipType.AIRCRAFT_CARRIER, 1);
@@ -65,7 +104,11 @@ public class ShipPlacementController {
         shipCounts.put(ShipType.DESTROYER, 3);
         shipCounts.put(ShipType.FRIGATE, 4);
     }
-
+    /**
+     * Creates the button matrix for the main placement grid.
+     * Sets up event handlers for clicking, mouse enter, and mouse exit events
+     * to handle ship placement and preview functionality.
+     */
     private void createGridButtons() {
         gridButtons = new Button[Board.SIZE][Board.SIZE];
         placementGrid.getChildren().clear();
@@ -88,7 +131,11 @@ public class ShipPlacementController {
             }
         }
     }
-
+    /**
+     * Creates the button matrix for the ship preview grid.
+     * This small 5x5 grid shows a preview of the currently selected ship.
+     * All buttons are disabled as this is display-only.
+     */
     private void createPreviewButtons() {
         previewButtons = new Button[5][5];
         previewGrid.getChildren().clear();
@@ -105,7 +152,14 @@ public class ShipPlacementController {
             }
         }
     }
-
+    /**
+     * Handles click events on the placement grid cells.
+     * Attempts to place the selected ship at the clicked position
+     * with the selected orientation.
+     *
+     * @param row The row of the clicked cell
+     * @param col The column of the clicked cell
+     */
     private void handleCellClick(int row, int col) {
         ShipType selectedType = getSelectedShipType();
         if (selectedType == null) {
@@ -142,7 +196,15 @@ public class ShipPlacementController {
             statusLabel.setText("Error al colocar el barco: " + e.getMessage());
         }
     }
-
+    /**
+     * Shows or hides placement preview when hovering over grid cells.
+     * Displays a visual preview of where the ship would be placed,
+     * using green color for valid positions and red for invalid ones.
+     *
+     * @param row The row being hovered over
+     * @param col The column being hovered over
+     * @param show Whether to show (true) or hide (false) the preview
+     */
     private void showPlacementPreview(int row, int col, boolean show) {
         ShipType selectedType = getSelectedShipType();
         if (selectedType == null) return;
@@ -185,7 +247,10 @@ public class ShipPlacementController {
             // Silenciar excepciones de vista previa
         }
     }
-
+    /**
+     * Updates the ship preview display in the small preview grid.
+     * Shows how the currently selected ship would look with the chosen orientation.
+     */
     private void updatePreview() {
         for (int row = 0; row < 5; row++) {
             for (int col = 0; col < 5; col++) {
@@ -222,7 +287,10 @@ public class ShipPlacementController {
             }
         }
     }
-
+    /**
+     * Updates the visual display of the main placement board.
+     * Shows placed ships in blue and empty cells in light cyan.
+     */
     private void updateBoardDisplay() {
         for (int row = 0; row < Board.SIZE; row++) {
             for (int col = 0; col < Board.SIZE; col++) {
@@ -238,7 +306,10 @@ public class ShipPlacementController {
             }
         }
     }
-
+    /**
+     * Updates the user interface elements showing ship counts and availability.
+     * Updates count labels and enables/disables radio buttons based on remaining ships.
+     */
     private void updateUI() {
         aircraftCarrierCount.setText("Restantes: " + shipCounts.get(ShipType.AIRCRAFT_CARRIER));
         submarineCount.setText("Restantes: " + shipCounts.get(ShipType.SUBMARINE));
@@ -250,7 +321,10 @@ public class ShipPlacementController {
         destroyerRadio.setDisable(shipCounts.get(ShipType.DESTROYER) <= 0);
         frigateRadio.setDisable(shipCounts.get(ShipType.FRIGATE) <= 0);
     }
-
+    /**
+     * Automatically selects the next available ship type after placing a ship.
+     * Prioritizes selection in order: Aircraft Carrier, Submarine, Destroyer, Frigate.
+     */
     private void selectNextAvailableShip() {
         if (shipCounts.get(ShipType.AIRCRAFT_CARRIER) > 0 && !aircraftCarrierRadio.isSelected()) {
             aircraftCarrierRadio.setSelected(true);
@@ -263,7 +337,10 @@ public class ShipPlacementController {
         }
         updatePreview();
     }
-
+    /**
+     * Updates the state of the start game button.
+     * Enables the button only when all ships have been placed on the board.
+     */
     private void updateStartButtonState() {
         boolean allShipsPlaced = shipCounts.values().stream().allMatch(count -> count == 0);
         startGameButton.setDisable(!allShipsPlaced);
@@ -272,7 +349,11 @@ public class ShipPlacementController {
             statusLabel.setText("¡Todos los barcos colocados! Puedes iniciar el juego.");
         }
     }
-
+    /**
+     * Gets the currently selected ship type from the radio buttons.
+     *
+     * @return The selected ShipType, or null if none is selected
+     */
     private ShipType getSelectedShipType() {
         if (aircraftCarrierRadio.isSelected()) return ShipType.AIRCRAFT_CARRIER;
         if (submarineRadio.isSelected()) return ShipType.SUBMARINE;
@@ -280,7 +361,12 @@ public class ShipPlacementController {
         if (frigateRadio.isSelected()) return ShipType.FRIGATE;
         return null;
     }
-
+    /**
+     * Creates a ship instance based on the specified type.
+     *
+     * @param type The type of ship to create
+     * @return A new ship instance, or null if the type is invalid
+     */
     private Ship createShip(ShipType type) {
         switch (type) {
             case AIRCRAFT_CARRIER: return new AircraftCarrier();
@@ -290,7 +376,11 @@ public class ShipPlacementController {
             default: return null;
         }
     }
-
+    /**
+     * Places all ships randomly on the board.
+     * FXML event handler for the random placement button.
+     * Uses the game's fleet configuration to place all required ships automatically.
+     */
     @FXML
     private void clearBoard() {
         playerBoard = new Board();
@@ -322,7 +412,15 @@ public class ShipPlacementController {
         updateStartButtonState();
         statusLabel.setText("¡Barcos colocados aleatoriamente!");
     }
-
+    /**
+     * Attempts to place a ship randomly on the board.
+     * Tries multiple random positions and orientations until a valid placement is found.
+     *
+     * @param ship The ship to place
+     * @param board The board to place the ship on
+     * @param random Random number generator for position selection
+     * @return true if the ship was successfully placed, false otherwise
+     */
     private boolean placeShipRandomly(Ship ship, Board board, java.util.Random random) {
         int attempts = 0;
         int maxAttempts = 1000;
@@ -345,7 +443,11 @@ public class ShipPlacementController {
         }
         return false;
     }
-
+    /**
+     * Starts the main game with the configured ship placement.
+     * FXML event handler for the start game button.
+     * Loads the main game stage and passes the configured board.
+     */
     @FXML
     private void startGame() {
         try {
@@ -369,7 +471,11 @@ public class ShipPlacementController {
             statusLabel.setText("Error al iniciar el juego");
         }
     }
-
+    /**
+     * Returns to the main menu.
+     * FXML event handler for the back button.
+     * Closes the current stage and opens the main menu.
+     */
     @FXML
     private void goBack() {
         try {
