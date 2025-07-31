@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="700.0" prefWidth="1000.0" style="-fx-background-image: url(/img/fondo_tablero.jpg);" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.ShipPlacementController">
+    <children>
+        <!-- Título -->
+        <Label layoutX="400.0" layoutY="20.0" text="COLOCA TUS BARCOS" textFill="WHITE">
+            <font>
+                <Font name="Bernard MT Condensed" size="32.0" />
+            </font>
+        </Label>
+
+        <!-- Panel de control izquierdo -->
+        <VBox layoutX="30.0" layoutY="80.0" prefHeight="500.0" prefWidth="250.0" spacing="20.0" style="-fx-background-color: rgba(0,0,0,0.7); -fx-padding: 20; -fx-background-radius: 10;">
+            <children>
+                <Label text="SELECCIONA TU BARCO:" textFill="WHITE">
+                    <font>
+                        <Font name="Arial" size="14.0" />
+                    </font>
+                </Label>
+
+                <!-- Selector de barcos -->
+                <VBox spacing="10.0">
+                    <children>
+                        <RadioButton fx:id="aircraftCarrierRadio" text="Portaaviones (5 casillas)" textFill="WHITE">
+                            <toggleGroup>
+                                <ToggleGroup fx:id="shipTypeGroup" />
+                            </toggleGroup>
+                            <font>
+                                <Font size="12.0" />
+                            </font>
+                        </RadioButton>
+                        <Label fx:id="aircraftCarrierCount" text="Restantes: 1" textFill="LIGHTGRAY">
+                            <font>
+                                <Font size="10.0" />
+                            </font>
+                        </Label>
+
+                        <RadioButton fx:id="submarineRadio" text="Submarino (4 casillas)" textFill="WHITE" toggleGroup="$shipTypeGroup">
+                            <font>
+                                <Font size="12.0" />
+                            </font>
+                        </RadioButton>
+                        <Label fx:id="submarineCount" text="Restantes: 2" textFill="LIGHTGRAY">
+                            <font>
+                                <Font size="10.0" />
+                            </font>
+                        </Label>
+
+                        <RadioButton fx:id="destroyerRadio" text="Destructor (3 casillas)" textFill="WHITE" toggleGroup="$shipTypeGroup">
+                            <font>
+                                <Font size="12.0" />
+                            </font>
+                        </RadioButton>
+                        <Label fx:id="destroyerCount" text="Restantes: 3" textFill="LIGHTGRAY">
+                            <font>
+                                <Font size="10.0" />
+                            </font>
+                        </Label>
+
+                        <RadioButton fx:id="frigateRadio" text="Fragata (2 casillas)" textFill="WHITE" toggleGroup="$shipTypeGroup">
+                            <font>
+                                <Font size="12.0" />
+                            </font>
+                        </RadioButton>
+                        <Label fx:id="frigateCount" text="Restantes: 4" textFill="LIGHTGRAY">
+                            <font>
+                                <Font size="10.0" />
+                            </font>
+                        </Label>
+                    </children>
+                </VBox>
+
+                <!-- Selector de orientación -->
+                <Label text="ORIENTACIÓN:" textFill="WHITE">
+                    <font>
+                        <Font name="Arial" size="14.0" />
+                    </font>
+                </Label>
+
+                <HBox spacing="20.0">
+                    <children>
+                        <RadioButton fx:id="horizontalRadio" selected="true" text="Horizontal" textFill="WHITE">
+                            <toggleGroup>
+                                <ToggleGroup fx:id="orientationGroup" />
+                            </toggleGroup>
+                        </RadioButton>
+                        <RadioButton fx:id="verticalRadio" text="Vertical" textFill="WHITE" toggleGroup="$orientationGroup" />
+                    </children>
+                </HBox>
+
+                <!-- Botones de acción -->
+                <VBox spacing="10.0">
+                    <children>
+                        <Button fx:id="clearBoardButton" onAction="#clearBoard" prefHeight="30.0" prefWidth="200.0" text="Limpiar Tablero" />
+                        <Button fx:id="randomPlacementButton" onAction="#randomPlacement" prefHeight="30.0" prefWidth="200.0" text="Colocación Aleatoria" />
+                        <Button fx:id="startGameButton" onAction="#startGame" prefHeight="40.0" prefWidth="200.0" text="INICIAR JUEGO" />
+                    </children>
+                </VBox>
+
+                <!-- Estado actual -->
+                <Label fx:id="statusLabel" text="Selecciona un barco y haz clic en el tablero" textFill="YELLOW" wrapText="true">
+                    <font>
+                        <Font size="11.0" />
+                    </font>
+                </Label>
+            </children>
+        </VBox>
+
+        <!-- Tablero de juego -->
+        <GridPane fx:id="placementGrid" gridLinesVisible="true" layoutX="320.0" layoutY="100.0" prefHeight="500.0" prefWidth="500.0" style="-fx-background-color: white;">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            </rowConstraints>
+        </GridPane>
+
+        <!-- Etiquetas de coordenadas -->
+        <!-- Números superiores -->
+        <Label layoutX="345.0" layoutY="75.0" text="1" textFill="WHITE" />
+        <Label layoutX="395.0" layoutY="75.0" text="2" textFill="WHITE" />
+        <Label layoutX="445.0" layoutY="75.0" text="3" textFill="WHITE" />
+        <Label layoutX="495.0" layoutY="75.0" text="4" textFill="WHITE" />
+        <Label layoutX="545.0" layoutY="75.0" text="5" textFill="WHITE" />
+        <Label layoutX="595.0" layoutY="75.0" text="6" textFill="WHITE" />
+        <Label layoutX="645.0" layoutY="75.0" text="7" textFill="WHITE" />
+        <Label layoutX="695.0" layoutY="75.0" text="8" textFill="WHITE" />
+        <Label layoutX="745.0" layoutY="75.0" text="9" textFill="WHITE" />
+        <Label layoutX="790.0" layoutY="75.0" text="10" textFill="WHITE" />
+
+        <!-- Letras laterales -->
+        <Label layoutX="300.0" layoutY="125.0" text="A" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="175.0" text="B" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="225.0" text="C" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="275.0" text="D" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="325.0" text="E" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="375.0" text="F" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="425.0" text="G" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="475.0" text="H" textFill="WHITE" />
+        <Label layoutX="302.0" layoutY="525.0" text="I" textFill="WHITE" />
+        <Label layoutX="300.0" layoutY="575.0" text="J" textFill="WHITE" />
+
+        <!-- Panel de vista previa del barco -->
+        <VBox layoutX="850.0" layoutY="100.0" prefHeight="200.0" prefWidth="120.0" spacing="10.0" style="-fx-background-color: rgba(0,0,0,0.7); -fx-padding: 15; -fx-background-radius: 10;">
+            <children>
+                <Label text="VISTA PREVIA:" textFill="WHITE">
+                    <font>
+                        <Font size="12.0" />
+                    </font>
+                </Label>
+                <GridPane fx:id="previewGrid" gridLinesVisible="true" prefHeight="100.0" prefWidth="90.0" style="-fx-background-color: white;">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                    </rowConstraints>
+                </GridPane>
+            </children>
+        </VBox>
+
+        <!-- Instrucciones -->
+        <Label layoutX="320.0" layoutY="620.0" prefWidth="500.0" text="Instrucciones: 1) Selecciona un tipo de barco, 2) Elige orientación, 3) Haz clic en el tablero para colocarlo" textFill="WHITE" wrapText="true">
+            <font>
+                <Font size="11.0" />
+            </font>
+        </Label>
+
+        <!-- Botón de regreso -->
+        <Button fx:id="backButton" layoutX="30.0" layoutY="30.0" onAction="#goBack" text="← Volver al Menú" />
+    </children>
+</AnchorPane>

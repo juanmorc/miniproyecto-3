@@ -1,6 +1,5 @@
 package controller;
 
-
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.Parent;
@@ -13,11 +12,9 @@ import javafx.scene.control.Label;
 
 import java.io.IOException;
 
-
 public class InicioController {
 
     @FXML private Button playButton, outButton;
-
     @FXML private Label navalLabel, battleLabel, furyLabel;
 
     @FXML
@@ -28,10 +25,11 @@ public class InicioController {
 
         playButton.setOnAction(e -> {
             try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/stage.fxml"));
+                // Cambiar la ruta para ir a la pantalla de colocación de barcos
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/ship-placement.fxml"));
                 Parent root = loader.load();
                 Stage newStage = new Stage();
-                newStage.setTitle("Stage");
+                newStage.setTitle("Naval Battle - Colocación de Barcos");
                 newStage.setScene(new Scene(root));
                 newStage.setResizable(false);
                 newStage.show();

@@ -6,6 +6,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.Node;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import model.*;
 import model.exceptions.CellAlreadyShotException;
 
@@ -25,21 +27,133 @@ public class StageController {
     @FXML
     public void initialize() {
         System.out.println("board view loaded");
-        initializeGame();
+        // No inicializar el juego aquí si se va a pasar desde fuera
+        if (game == null) {
+            initializeGame();
+        }
         createGridButtons();
         createOpponentGridButtons();
     }
 
+    // Método para recibir un tablero pre-configurado desde ShipPlacementController
+    public void initializeWithPlayerBoard(Board playerBoard) {
+        this.game = new Game("Player");
+
+        // Copiar el tablero configurado al jugador
+        HumanPlayer human = game.getHumanPlayer();
+        copyBoard(playerBoard, human.getBoard());
+
+        // Iniciar el juego
+        if (game.allHumanShipsPlaced()) {
+            game.startGamePlay();
+        }
+
+        updatePlayerBoardDisplay();
+        updateStatusLabel();
+    }
+
+    // Método simplificado para copiar un tablero a otro
+    private void copyBoard(Board source, Board destination) {
+        // Copiar todos los barcos del tablero origen al destino
+        for (int row = 0; row < Board.SIZE; row++) {
+            for (int col = 0; col < Board.SIZE; col++) {
+                if (source.hasShip(row, col)) {
+                    try {
+                        Cell sourceCell = source.getCell(row, col);
+                        Ship ship = sourceCell.getShipPart();
+
+                        if (ship != null && !destination.hasShip(row, col)) {
+                            // Encontrar la posición inicial del barco
+                            int[] shipStart = findShipStart(source, ship, row, col);
+                            Orientation orientation = determineOrientation(source, ship, shipStart[0], shipStart[1]);
+
+                            // Crear una nueva instancia del barco
+                            Ship newShip = createShipCopy(ship);
+                            if (newShip != null) {
+                                destination.placeShip(newShip, shipStart[0], shipStart[1], orientation);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error copiando barco: " + e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    // Método auxiliar para encontrar el inicio de un barco
+    private int[] findShipStart(Board board, Ship ship, int currentRow, int currentCol) {
+        int startRow = currentRow;
+        int startCol = currentCol;
+
+        // Buscar hacia arriba
+        while (startRow > 0 && board.hasShip(startRow - 1, currentCol) &&
+                board.getCell(startRow - 1, currentCol).getShipPart() == ship) {
+            startRow--;
+        }
+
+        // Buscar hacia la izquierda
+        while (startCol > 0 && board.hasShip(currentRow, startCol - 1) &&
+                board.getCell(currentRow, startCol - 1).getShipPart() == ship) {
+            startCol--;
+        }
+
+        return new int[]{startRow, startCol};
+    }
+
+    // Método auxiliar para determinar la orientación de un barco
+    private Orientation determineOrientation(Board board, Ship ship, int startRow, int startCol) {
+        // Verificar si el barco se extiende horizontalmente
+        if (startCol + 1 < Board.SIZE && board.hasShip(startRow, startCol + 1) &&
+                board.getCell(startRow, startCol + 1).getShipPart() == ship) {
+            return Orientation.HORIZONTAL;
+        }
+        return Orientation.VERTICAL;
+    }
+
+    // Método auxiliar para crear una copia de un barco
+    private Ship createShipCopy(Ship original) {
+        if (original instanceof AircraftCarrier) return new AircraftCarrier();
+        if (original instanceof Submarine) return new Submarine();
+        if (original instanceof Destroyer) return new Destroyer();
+        if (original instanceof Frigate) return new Frigate();
+        return null;
+    }
+
     private void initializeGame() {
         game = new Game("Player");
-
         placePlayerShipsAutomatically();
 
         if (game.allHumanShipsPlaced()) {
             game.startGamePlay();
         }
 
+        updatePlayerBoardDisplay();
         updateStatusLabel();
+    }
+
+    // Método para mostrar los barcos del jugador en el tablero
+    private void updatePlayerBoardDisplay() {
+        if (game == null || gridButtons == null) return;
+
+        HumanPlayer human = game.getHumanPlayer();
+        Board board = human.getBoard();
+
+        for (int row = 0; row < Board.SIZE; row++) {
+            for (int col = 0; col < Board.SIZE; col++) {
+                Button cell = gridButtons[row][col];
+
+                if (board.hasShip(row, col)) {
+                    // Mostrar barcos del jugador en azul
+                    cell.setStyle("-fx-background-color: darkblue; -fx-border-color: white; -fx-border-width: 2;");
+                    cell.setText("■");
+                } else {
+                    // Celdas vacías
+                    cell.setStyle("-fx-background-color: lightcyan; -fx-border-color: navy; -fx-border-width: 1;");
+                    cell.setText("");
+                }
+            }
+        }
     }
 
     private void placePlayerShipsAutomatically() {
@@ -145,12 +259,12 @@ public class StageController {
     }
 
     private void handleCellClick(int row, int col) {
-        if (game.getGameState() != GameState.PLAYER_TURN) {
+        if (game == null || game.getGameState() != GameState.PLAYER_TURN) {
             return;
         }
         try {
             ShotResult result = game.processPlayerShot(row, col);
-            updateCellAppearance(row, col, result);
+            updateCellAppearanceForShot(row, col, result);
             updateOpponentDisplay();
 
             if (result == ShotResult.WATER) {
@@ -167,7 +281,7 @@ public class StageController {
     }
 
     private void processMachineTurn() {
-        if (game.getGameState() != GameState.MACHINE_TURN) {
+        if (game == null || game.getGameState() != GameState.MACHINE_TURN) {
             return;
         }
 
@@ -182,15 +296,14 @@ public class StageController {
         machineTask.setOnSucceeded(e -> {
             ShotResult result = game.processMachineShot();
 
+            // Actualizar la visualización del tablero del jugador después del disparo de la máquina
+            updatePlayerBoardAfterMachineShot();
+
             if (result != ShotResult.WATER && game.getGameState() == GameState.MACHINE_TURN) {
-                Platform.runLater(() -> {
-                    try {
-                        Thread.sleep(500);
-                        processMachineTurn();
-                    } catch (InterruptedException ex) {
-                        Thread.currentThread().interrupt();
-                    }
-                });
+                // Usar PauseTransition en lugar de Thread.sleep
+                PauseTransition pause = new PauseTransition(Duration.millis(500));
+                pause.setOnFinished(event -> processMachineTurn());
+                pause.play();
             }
 
             updateStatusLabel();
@@ -202,110 +315,137 @@ public class StageController {
         machineThread.start();
     }
 
-    private void updateCellAppearance(int row, int col, ShotResult result) {
-        Button cell = gridButtons[row][col];
+    // Método para actualizar la apariencia de la celda después de un disparo
+    private void updateCellAppearanceForShot(int row, int col, ShotResult result) {
+        if (gridButtons == null || row < 0 || row >= Board.SIZE || col < 0 || col >= Board.SIZE) {
+            return;
+        }
 
+        Button cell = gridButtons[row][col];
         switch (result) {
-            case WATER:
-                cell.setText("○");
-                cell.setStyle("-fx-background-color: lightblue; -fx-border-color: black;");
-                break;
             case TOUCH:
+                cell.setStyle("-fx-background-color: orange; -fx-border-color: red; -fx-border-width: 2;");
                 cell.setText("X");
-                cell.setStyle("-fx-background-color: orange; -fx-border-color: black;");
+                break;
+            case WATER:
+                cell.setStyle("-fx-background-color: cyan; -fx-border-color: blue; -fx-border-width: 2;");
+                cell.setText("O");
                 break;
             case SUNK:
-                cell.setText("X");
-                cell.setStyle("-fx-background-color: red; -fx-border-color: black;");
+                cell.setStyle("-fx-background-color: darkred; -fx-border-color: black; -fx-border-width: 2;");
+                cell.setText("💥");
                 break;
         }
         cell.setDisable(true);
     }
 
+    // Método para actualizar la visualización del oponente
     private void updateOpponentDisplay() {
-        if (opponentButtons == null || !showingOpponentBoard) return;
+        if (game == null || opponentButtons == null) return;
 
-        MachinePlayer machine = game.getMachinePlayer();
-        Board machineBoard = machine.getBoard();
+        // Aquí puedes agregar lógica para mostrar información del oponente
+        // Por ejemplo, actualizar un grid que muestre los disparos realizados
+    }
+
+    // Método para actualizar el label de estado
+    private void updateStatusLabel() {
+        if (game == null || statusLabel == null) return;
+
+        GameState state = game.getGameState();
+        switch (state) {
+            case PLAYER_TURN:
+                statusLabel.setText("Tu turno - Haz clic en una celda para disparar");
+                break;
+            case MACHINE_TURN:
+                statusLabel.setText("Turno de la máquina...");
+                break;
+            case GAME_OVER_HUMAN_WINS:
+                statusLabel.setText("¡Felicidades! Has ganado la batalla naval");
+                break;
+            case GAME_OVER_MACHINE_WINS:
+                statusLabel.setText("La máquina ha ganado. ¡Mejor suerte la próxima vez!");
+                break;
+            default:
+                statusLabel.setText("Preparando el juego...");
+                break;
+        }
+    }
+
+    // Sobrecarga del método para mensajes personalizados
+    private void updateStatusLabel(String message) {
+        if (statusLabel != null) {
+            statusLabel.setText(message);
+        }
+    }
+
+    // Método para verificar si el juego ha terminado
+    private void checkGameOver() {
+        if (game == null) return;
+
+        GameState state = game.getGameState();
+        if (state == GameState.GAME_OVER_HUMAN_WINS || state == GameState.GAME_OVER_MACHINE_WINS) {
+            // Deshabilitar todos los botones del grid
+            for (int row = 0; row < Board.SIZE; row++) {
+                for (int col = 0; col < Board.SIZE; col++) {
+                    if (gridButtons[row][col] != null) {
+                        gridButtons[row][col].setDisable(true);
+                    }
+                }
+            }
+        }
+    }
+
+    // Método para actualizar el tablero del jugador después del disparo de la máquina
+    private void updatePlayerBoardAfterMachineShot() {
+        if (game == null || gridButtons == null) return;
+
+        HumanPlayer human = game.getHumanPlayer();
+        Board board = human.getBoard();
 
         for (int row = 0; row < Board.SIZE; row++) {
             for (int col = 0; col < Board.SIZE; col++) {
-                Button cell = opponentButtons[row][col];
+                Button cell = gridButtons[row][col];
 
-                if (machineBoard.hasShip(row, col)) {
-                    if (machineBoard.wasShot(row, col)) {
-                        cell.setText("X");
-                        cell.setStyle("-fx-background-color: red; -fx-border-color: black; -fx-font-size: 8px;");
+                if (board.hasShip(row, col)) {
+                    Cell boardCell = board.getCell(row, col);
+
+                    // Verificar si esta celda fue impactada
+                    if (boardCell.getCellState() == CellState.HIT_SHIP_PART) {
+                        // Mostrar impacto en barco del jugador
+                        gridButtons[row][col].setStyle("-fx-background-color: orange; -fx-border-color: red; -fx-border-width: 2;");
+                        gridButtons[row][col].setText("💥");
+                    } else if (boardCell.getCellState() == CellState.SUNK_SHIP_PART) {
+                        // Barco hundido
+                        gridButtons[row][col].setStyle("-fx-background-color: darkred; -fx-border-color: black; -fx-border-width: 2;");
+                        gridButtons[row][col].setText("💥");
                     } else {
-                        cell.setText("■");
-                        cell.setStyle("-fx-background-color: darkgray; -fx-border-color: black; -fx-font-size: 8px;");
+                        // Barco no impactado
+                        gridButtons[row][col].setStyle("-fx-background-color: darkblue; -fx-border-color: white; -fx-border-width: 2;");
+                        gridButtons[row][col].setText("■");
                     }
-                } else if (machineBoard.wasShot(row, col)) {
-                    cell.setText("○");
-                    cell.setStyle("-fx-background-color: lightblue; -fx-border-color: black; -fx-font-size: 8px;");
                 } else {
-                    cell.setText("");
-                    cell.setStyle("-fx-background-color: lightgray; -fx-border-color: black; -fx-font-size: 8px;");
+                    // Verificar si esta celda de agua fue disparada
+                    if (board.wasShot(row, col)) {
+                        // Agua disparada
+                        gridButtons[row][col].setStyle("-fx-background-color: lightblue; -fx-border-color: blue; -fx-border-width: 1;");
+                        gridButtons[row][col].setText("~");
+                    } else {
+                        // Agua normal
+                        gridButtons[row][col].setStyle("-fx-background-color: lightcyan; -fx-border-color: navy; -fx-border-width: 1;");
+                        gridButtons[row][col].setText("");
+                    }
                 }
             }
         }
     }
 
+    // Método para mostrar/ocultar el tablero del oponente (si existe esta funcionalidad)
     @FXML
     private void toggleOpponentBoard() {
         showingOpponentBoard = !showingOpponentBoard;
-
-        if (showingOpponentBoard) {
-            opponentGrid.setVisible(true);
-            showOpponentButton.setText("Hide opponent's board");
-            updateOpponentDisplay();
-        } else {
-            opponentGrid.setVisible(false);
-            showOpponentButton.setText("Show opponent's board");
+        if (showOpponentButton != null) {
+            showOpponentButton.setText(showingOpponentBoard ? "Ocultar tablero oponente" : "Mostrar tablero oponente");
         }
-    }
-
-    private void updateStatusLabel() {
-        updateStatusLabel(null);
-    }
-
-    private void updateStatusLabel(String customMessage) {
-        String status = "";
-
-        if (customMessage != null) {
-            status = customMessage;
-        } else {
-            switch (game.getGameState()) {
-                case PLAYER_TURN:
-                    status = "Your turn - Click on a cell to shoot";
-                    break;
-                case MACHINE_TURN:
-                    status = "Machine's turn...";
-                    break;
-                case GAME_OVER_HUMAN_WINS:
-                    status = "¡Congrats! ¡You won!";
-                    break;
-                case GAME_OVER_MACHINE_WINS:
-                    status = "The machine has won. ¡Try it again!";
-                    break;
-            }
-        }
-        if (statusLabel != null) {
-            statusLabel.setText(status);
-        }
-    }
-
-    private void checkGameOver() {
-        if (game.getGameState() == GameState.GAME_OVER_HUMAN_WINS ||
-                game.getGameState() == GameState.GAME_OVER_MACHINE_WINS) {
-            for (int row = 0; row < Board.SIZE; row++) {
-                for (int col = 0; col < Board.SIZE; col++) {
-                    gridButtons[row][col].setDisable(true);
-                }
-            }
-            if (!showingOpponentBoard) {
-                toggleOpponentBoard();
-            }
-        }
+        // Aquí puedes agregar lógica para mostrar/ocultar el grid del oponente
     }
 }
