@@ -7,15 +7,54 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a game board in the Battle Naval Fury game.
+ * 
+ * <p>The board is a 10x10 grid that manages ship placement, shot tracking,
+ * and game state. Each board maintains its own collection of ships and
+ * tracks which cells have been targeted.</p>
+ * 
+ * <p>Key responsibilities include:</p>
+ * <ul>
+ *   <li>Managing the grid of cells</li>
+ *   <li>Validating and placing ships</li>
+ *   <li>Processing shots and determining results</li>
+ *   <li>Tracking sunk ships</li>
+ * </ul>
+ * 
+ * @author Battle Naval Fury Team
+ * @version 1.0
+ * @since 1.0
+ * @see Cell
+ * @see Ship
+ * @see Player
+ */
 public class Board implements Serializable {
+    
+    /** Serial version UID for serialization compatibility */
     private static final long serialVersionUID = 1L;
+    
+    /** Standard board size (10x10 grid) */
     public final static int SIZE = 10;
 
+    /** The main grid of cells representing the board */
     private Cell[][] grid;
+    
+    /** Grid tracking which cells have been shot at */
     private boolean[][] shotGrid;
+    
+    /** List of all ships placed on this board */
     private List<Ship> ships;
+    
+    /** Count of ships that have been completely sunk */
     private int sunkShipsCount;
 
+    /**
+     * Creates a new empty board with initialized grid.
+     * 
+     * <p>Initializes a 10x10 grid of cells and sets up tracking arrays
+     * for shots and ships. All cells start empty and unshot.</p>
+     */
     public Board() {
         this.grid = new Cell[SIZE][SIZE];
         this.shotGrid = new boolean[SIZE][SIZE];
@@ -24,6 +63,12 @@ public class Board implements Serializable {
         this.sunkShipsCount = 0;
     }
 
+    /**
+     * Initializes the grid with empty cells.
+     * 
+     * <p>Creates Cell objects for each position in the grid and
+     * resets the shot tracking grid to false.</p>
+     */
     public void initializeGrid() {
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
@@ -33,6 +78,13 @@ public class Board implements Serializable {
         }
     }
 
+    /**
+     * Gets the cell at the specified coordinates.
+     * 
+     * @param row the row coordinate (0-9)
+     * @param col the column coordinate (0-9)
+     * @return the Cell at the specified position, or null if coordinates are invalid
+     */
     public Cell getCell(int row, int col) {
         if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
             return grid[row][col];
