@@ -1,152 +1,239 @@
 package controller;
+
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
+import javafx.scene.Node;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import model.*;
 import model.exceptions.CellAlreadyShotException;
 
+/**
+ * Main controller for the naval battle game.
+ * Handles the game board GUI, player turns,
+ * shot visualization and overall game state.
+ *
+ * @author [Your name]
+ * @version 1.0
+ * @since 2024
+ */
 public class StageController {
+
+    /** Grid that displays the human player's board */
     @FXML private GridPane gameGrid;
+
+    /** Grid that displays opponent (machine) information */
     @FXML private GridPane opponentGrid;
+
+    /** Label that shows the current game status */
     @FXML private Label statusLabel;
+
+    /** Label to show opponent information */
     @FXML private Label opponentLabel;
+
+    /** Label to control opponent board visualization */
     @FXML private Label showOpponentLabel;
+
+    /** Button to show/hide opponent board */
     @FXML private Button showOpponentButton;
-    @FXML private Button autoPlaceButton;
-    @FXML private Button toggleOrientationButton;
-    @FXML private Label shipToPlaceLabel;
 
+    /** Game instance that contains all the logic */
     private Game game;
-    private Button[][] gridButtons;
-    private Button[][] opponentButtons;
-    private boolean showingOpponentBoard = false;
-    
-    // Variables para colocación manual de barcos
-    private boolean isManualPlacementMode = true;
-    private Orientation currentOrientation = Orientation.HORIZONTAL;
-    private ShipType currentShipToPlace = null;
-    private int shipPlacementIndex = 0;
 
+    /** Button matrix representing the player's board cells */
+    private Button[][] gridButtons;
+
+    /** Button matrix representing the opponent's board cells */
+    private Button[][] opponentButtons;
+
+    /** Indicates if the opponent board is being shown */
+    private boolean showingOpponentBoard = false;
+
+    /**
+     * Initializes the controller and its components.
+     * Executed automatically after loading the FXML.
+     */
     @FXML
     public void initialize() {
         System.out.println("board view loaded");
-        initializeGame();
+        // Don't initialize the game here if it will be passed from outside
+        if (game == null) {
+            initializeGame();
+        }
         createGridButtons();
         createOpponentGridButtons();
     }
 
-    private void initializeGame() {
-        // Intentar cargar juego guardado primero
-        Game savedGame = Game.loadGame();
-        
-        if (savedGame != null) {
-            game = savedGame;
-            isManualPlacementMode = false; // Juego cargado, no necesita colocación
-            System.out.println("Juego cargado desde archivo guardado.");
-            System.out.println("Estado: " + game.getGameState());
-            System.out.println("Jugador: " + game.getHumanNickname());
-            
-            // Si el juego guardado estaba terminado, empezar uno nuevo
-            if (game.getGameState() == GameState.GAME_OVER_HUMAN_WINS || 
-                game.getGameState() == GameState.GAME_OVER_MACHINE_WINS) {
-                System.out.println("El juego guardado estaba terminado. Iniciando juego nuevo.");
-                game.deleteSaveFile();
-                startNewGame();
-            }
-        } else {
-            System.out.println("No hay juego guardado. Iniciando juego nuevo.");
-            startNewGame();
+    /**
+     * Initializes the game with a pre-configured board from the ship placement controller.
+     * This method is called when the player comes from the ship placement screen.
+     *
+     * @param playerBoard The board already configured with the player's ships
+     */
+    public void initializeWithPlayerBoard(Board playerBoard) {
+        this.game = new Game("Player");
+
+        // Copy the configured board to the player
+        HumanPlayer human = game.getHumanPlayer();
+        copyBoard(playerBoard, human.getBoard());
+
+        // Start the game
+        if (game.allHumanShipsPlaced()) {
+            game.startGamePlay();
         }
 
+        updatePlayerBoardDisplay();
         updateStatusLabel();
-        updateShipPlacementUI();
-    }
-
-    private void startNewGame() {
-        game = new Game("Player");
-        isManualPlacementMode = true;
-        shipPlacementIndex = 0;
-        currentShipToPlace = Game.FLEET_CONFIGURATION.get(shipPlacementIndex);
-        
-        // No colocar barcos automáticamente, dejar que el usuario los coloque
-        // Solo colocar barcos de la máquina
-        // La máquina ya coloca sus barcos en el constructor de Game
     }
 
     /**
-     * Actualiza la interfaz de colocación de barcos
+     * Copies the content from one board to another.
+     * Used to transfer the player's ship configuration
+     * from the placement screen to the main game.
+     *
+     * @param source The source board to copy from
+     * @param destination The destination board to copy to
      */
-    private void updateShipPlacementUI() {
-        if (shipToPlaceLabel != null) {
-            if (isManualPlacementMode && currentShipToPlace != null) {
-                shipToPlaceLabel.setText("Colocar: " + currentShipToPlace.getDisplayName() + 
-                                       " (" + (shipPlacementIndex + 1) + "/" + Game.FLEET_CONFIGURATION.size() + ")");
-            } else if (!isManualPlacementMode) {
-                shipToPlaceLabel.setText("¡Todos los barcos colocados!");
-            } else {
-                shipToPlaceLabel.setText("Colocación completada");
-            }
-        }
-        
-        if (toggleOrientationButton != null) {
-            toggleOrientationButton.setVisible(isManualPlacementMode);
-            if (isManualPlacementMode) {
-                toggleOrientationButton.setText("Orientación: " + 
-                    (currentOrientation == Orientation.HORIZONTAL ? "Horizontal" : "Vertical"));
-            }
-        }
-        
-        if (autoPlaceButton != null) {
-            autoPlaceButton.setVisible(isManualPlacementMode);
-        }
-    }
+    private void copyBoard(Board source, Board destination) {
+        // Copy all ships from source board to destination
+        for (int row = 0; row < Board.SIZE; row++) {
+            for (int col = 0; col < Board.SIZE; col++) {
+                if (source.hasShip(row, col)) {
+                    try {
+                        Cell sourceCell = source.getCell(row, col);
+                        Ship ship = sourceCell.getShipPart();
 
-    /**
-     * Cambia la orientación del barco a colocar
-     */
-    @FXML
-    private void toggleOrientation() {
-        if (isManualPlacementMode) {
-            currentOrientation = (currentOrientation == Orientation.HORIZONTAL) ? 
-                Orientation.VERTICAL : Orientation.HORIZONTAL;
-            updateShipPlacementUI();
-        }
-    }
+                        if (ship != null && !destination.hasShip(row, col)) {
+                            // Find the ship's starting position
+                            int[] shipStart = findShipStart(source, ship, row, col);
+                            Orientation orientation = determineOrientation(source, ship, shipStart[0], shipStart[1]);
 
-    /**
-     * Coloca todos los barcos automáticamente
-     */
-    @FXML
-    private void autoPlaceShips() {
-        if (isManualPlacementMode) {
-            // Colocar barcos restantes automáticamente
-            while (shipPlacementIndex < Game.FLEET_CONFIGURATION.size()) {
-                ShipType type = Game.FLEET_CONFIGURATION.get(shipPlacementIndex);
-                Ship ship = createShip(type);
-                if (ship != null) {
-                    if (placeShipRandomly(ship, game.getHumanPlayer().getBoard())) {
-                        shipPlacementIndex++;
-                    } else {
-                        updateStatusLabel("Error colocando barco automáticamente: " + type.getDisplayName());
-                        break;
+                            // Create a new ship instance
+                            Ship newShip = createShipCopy(ship);
+                            if (newShip != null) {
+                                destination.placeShip(newShip, shipStart[0], shipStart[1], orientation);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error copying ship: " + e.getMessage());
                     }
                 }
             }
-            
-            if (shipPlacementIndex >= Game.FLEET_CONFIGURATION.size()) {
-                isManualPlacementMode = false;
-                currentShipToPlace = null;
-                game.startGamePlay();
-                updateGridFromGameState();
-                updateShipPlacementUI();
-                updateStatusLabel("¡Barcos colocados automáticamente! ¡Comienza la batalla!");
+        }
+    }
+
+    /**
+     * Finds the starting position (top-left corner) of a ship.
+     * Searches upward and leftward from a given position.
+     *
+     * @param board The board to search in
+     * @param ship The ship to find the start of
+     * @param currentRow The current row to search from
+     * @param currentCol The current column to search from
+     * @return An array with the coordinates [row, column] of the ship's start
+     */
+    private int[] findShipStart(Board board, Ship ship, int currentRow, int currentCol) {
+        int startRow = currentRow;
+        int startCol = currentCol;
+
+        // Search upward
+        while (startRow > 0 && board.hasShip(startRow - 1, currentCol) &&
+                board.getCell(startRow - 1, currentCol).getShipPart() == ship) {
+            startRow--;
+        }
+
+        // Search leftward
+        while (startCol > 0 && board.hasShip(currentRow, startCol - 1) &&
+                board.getCell(currentRow, startCol - 1).getShipPart() == ship) {
+            startCol--;
+        }
+
+        return new int[]{startRow, startCol};
+    }
+
+    /**
+     * Determines a ship's orientation based on its position on the board.
+     *
+     * @param board The board where the ship is located
+     * @param ship The ship to determine orientation for
+     * @param startRow The ship's starting row
+     * @param startCol The ship's starting column
+     * @return The ship's orientation (HORIZONTAL or VERTICAL)
+     */
+    private Orientation determineOrientation(Board board, Ship ship, int startRow, int startCol) {
+        // Check if the ship extends horizontally
+        if (startCol + 1 < Board.SIZE && board.hasShip(startRow, startCol + 1) &&
+                board.getCell(startRow, startCol + 1).getShipPart() == ship) {
+            return Orientation.HORIZONTAL;
+        }
+        return Orientation.VERTICAL;
+    }
+
+    /**
+     * Creates a copy of a ship based on its type.
+     *
+     * @param original The original ship to create a copy of
+     * @return A new instance of the same ship type, or null if type is not recognized
+     */
+    private Ship createShipCopy(Ship original) {
+        if (original instanceof AircraftCarrier) return new AircraftCarrier();
+        if (original instanceof Submarine) return new Submarine();
+        if (original instanceof Destroyer) return new Destroyer();
+        if (original instanceof Frigate) return new Frigate();
+        return null;
+    }
+
+    /**
+     * Initializes a new game with automatic ship placement.
+     * Used when no pre-configured board is provided.
+     */
+    private void initializeGame() {
+        game = new Game("Player");
+        placePlayerShipsAutomatically();
+
+        if (game.allHumanShipsPlaced()) {
+            game.startGamePlay();
+        }
+
+        updatePlayerBoardDisplay();
+        updateStatusLabel();
+    }
+
+    /**
+     * Updates the player's board visualization in the GUI.
+     * Shows the player's ships in blue and empty cells in light color.
+     */
+    private void updatePlayerBoardDisplay() {
+        if (game == null || gridButtons == null) return;
+
+        HumanPlayer human = game.getHumanPlayer();
+        Board board = human.getBoard();
+
+        for (int row = 0; row < Board.SIZE; row++) {
+            for (int col = 0; col < Board.SIZE; col++) {
+                Button cell = gridButtons[row][col];
+
+                if (board.hasShip(row, col)) {
+                    // Show player's ships in blue
+                    cell.setStyle("-fx-background-color: darkblue; -fx-border-color: white; -fx-border-width: 2;");
+                    cell.setText("■");
+                } else {
+                    // Empty cells
+                    cell.setStyle("-fx-background-color: lightcyan; -fx-border-color: navy; -fx-border-width: 1;");
+                    cell.setText("");
+                }
             }
         }
     }
 
+    /**
+     * Automatically places all player ships in random positions.
+     * Used as fallback when there's no manual configuration.
+     */
     private void placePlayerShipsAutomatically() {
         HumanPlayer human = game.getHumanPlayer();
         Board board = human.getBoard();
@@ -155,12 +242,18 @@ public class StageController {
             Ship ship = createShip(type);
             if (ship != null) {
                 if (!placeShipRandomly(ship, board)) {
-                    System.out.println("The boat could not be placed: " + type);
+                    System.out.println("The ship could not be placed: " + type);
                 }
             }
         }
     }
 
+    /**
+     * Creates a ship instance based on its type.
+     *
+     * @param type The type of ship to create
+     * @return A new instance of the requested ship, or null if type is invalid
+     */
     private Ship createShip(ShipType type) {
         switch (type) {
             case AIRCRAFT_CARRIER: return new AircraftCarrier();
@@ -171,6 +264,13 @@ public class StageController {
         }
     }
 
+    /**
+     * Attempts to place a ship in a random valid position on the board.
+     *
+     * @param ship The ship to place
+     * @param board The board where to place the ship
+     * @return true if the ship was placed successfully, false otherwise
+     */
     private boolean placeShipRandomly(Ship ship, Board board) {
         java.util.Random random = new java.util.Random();
         int attempts = 0;
@@ -196,19 +296,23 @@ public class StageController {
                 }
                 if (board.canPlaceShip(ship, row, col, orientation)) {
                     board.placeShip(ship, row, col, orientation);
-                    System.out.println("Boat placed: " + ship.getClass().getSimpleName() +
-                            " en (" + row + "," + col + ") " + orientation);
+                    System.out.println("Ship placed: " + ship.getClass().getSimpleName() +
+                            " at (" + row + "," + col + ") " + orientation);
                     return true;
                 }
             } catch (Exception e) {
-                System.out.println("Error placing the boat: " + e.getMessage());
+                System.out.println("Error placing ship: " + e.getMessage());
             }
             attempts++;
         }
-        System.out.println("The boat could'nt be placed from " + maxAttempts + " attempts");
+        System.out.println("Ship couldn't be placed after " + maxAttempts + " attempts");
         return false;
     }
 
+    /**
+     * Creates the button matrix representing the player's board.
+     * Configures event handlers to handle user clicks.
+     */
     private void createGridButtons() {
         gridButtons = new Button[Board.SIZE][Board.SIZE];
         gameGrid.getChildren().clear();
@@ -228,72 +332,12 @@ public class StageController {
                 gameGrid.add(button, col, row);
             }
         }
-        
-        // Actualizar apariencia si hay un juego cargado
-        updateGridFromGameState();
     }
 
     /**
-     * Actualiza la apariencia del grid basándose en el estado del juego cargado
+     * Creates the button matrix to show opponent board information.
+     * These buttons are disabled as they are for information only.
      */
-    private void updateGridFromGameState() {
-        if (game == null) return;
-        
-        Board playerBoard = game.getHumanPlayer().getBoard();
-        
-        for (int row = 0; row < Board.SIZE; row++) {
-            for (int col = 0; col < Board.SIZE; col++) {
-                Button button = gridButtons[row][col];
-                Cell cell = playerBoard.getCell(row, col);
-                
-                if (playerBoard.wasShot(row, col)) {
-                    // La celda fue disparada, actualizar apariencia
-                    if (cell.getShipPart() != null) {
-                        // Hay un barco aquí
-                        if (cell.getShipPart().isSunk()) {
-                            button.setText("X");
-                            button.setStyle("-fx-background-color: red; -fx-border-color: black;");
-                        } else {
-                            button.setText("X");
-                            button.setStyle("-fx-background-color: orange; -fx-border-color: black;");
-                        }
-                    } else {
-                        // Es agua
-                        button.setText("○");
-                        button.setStyle("-fx-background-color: lightblue; -fx-border-color: black;");
-                    }
-                    button.setDisable(true);
-                } else if (cell.getShipPart() != null) {
-                    // Hay un barco no disparado - mostrar como barco para el jugador
-                    Ship ship = cell.getShipPart();
-                    String shipSymbol = getShipSymbol(ship.getType());
-                    button.setText(shipSymbol);
-                    button.setStyle("-fx-background-color: darkgray; -fx-border-color: black; -fx-text-fill: white; -fx-font-weight: bold;");
-                } else {
-                    // Celda vacía
-                    button.setText("");
-                    button.setStyle("-fx-background-color: lightgray; -fx-border-color: black;");
-                    if (isManualPlacementMode) {
-                        button.setDisable(false); // Permitir clic para colocar barcos
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Obtiene el símbolo visual para cada tipo de barco
-     */
-    private String getShipSymbol(ShipType type) {
-        switch (type) {
-            case AIRCRAFT_CARRIER: return "A";
-            case SUBMARINE: return "S";
-            case DESTROYER: return "D";
-            case FRIGATE: return "F";
-            default: return "■";
-        }
-    }
-
     private void createOpponentGridButtons() {
         if (opponentGrid == null) return;
 
@@ -313,109 +357,41 @@ public class StageController {
         }
     }
 
+    /**
+     * Handles the player's click on a board cell.
+     * Processes the player's shot and handles turn changes.
+     *
+     * @param row The row of the clicked cell
+     * @param col The column of the clicked cell
+     */
     private void handleCellClick(int row, int col) {
-        if (isManualPlacementMode && game.getGameState() == GameState.SHIP_PLACEMENT) {
-            // Modo de colocación de barcos
-            handleShipPlacement(row, col);
-        } else if (game.getGameState() != GameState.PLAYER_TURN) {
+        if (game == null || game.getGameState() != GameState.PLAYER_TURN) {
             return;
-        } else {
-            // Modo de disparo
-            try {
-                ShotResult result = game.processPlayerShot(row, col);
-                updateCellAppearance(row, col, result);
-                updateOpponentDisplay();
-
-                if (result == ShotResult.WATER) {
-                    processMachineTurn();
-                }
-
-                updateStatusLabel();
-                checkGameOver();
-
-            } catch (CellAlreadyShotException e) {
-                System.out.println("Celda ya disparada: " + e.getMessage());
-                updateStatusLabel("¡Esa celda ya fue disparada! Elige otra.");
-            }
         }
-    }
-
-    private void handleShipPlacement(int row, int col) {
-        if (currentShipToPlace == null) return;
-
         try {
-            Ship ship = createShip(currentShipToPlace);
-            if (ship == null) return;
+            ShotResult result = game.processPlayerShot(row, col);
+            updateCellAppearanceForShot(row, col, result);
+            updateOpponentDisplay();
 
-            // Verificar si se puede colocar el barco
-            if (game.getHumanPlayer().getBoard().canPlaceShip(ship, row, col, currentOrientation)) {
-                game.placeHumanShip(ship, row, col, currentOrientation);
-                
-                System.out.println("Barco " + currentShipToPlace.getDisplayName() + 
-                                 " colocado en (" + row + "," + col + ") " + currentOrientation);
-                
-                // Actualizar visualmente
-                updateGridFromGameState();
-                
-                // Avanzar al siguiente barco
-                shipPlacementIndex++;
-                if (shipPlacementIndex < Game.FLEET_CONFIGURATION.size()) {
-                    currentShipToPlace = Game.FLEET_CONFIGURATION.get(shipPlacementIndex);
-                    updateStatusLabel();
-                } else {
-                    // Todos los barcos colocados
-                    isManualPlacementMode = false;
-                    currentShipToPlace = null;
-                    game.startGamePlay();
-                    updateStatusLabel("¡Todos los barcos colocados! ¡Comienza la batalla!");
-                    
-                    // Deshabilitar botones ya que no es el turno del jugador aún
-                    disableGridForShooting();
-                }
-                
-                updateShipPlacementUI();
-                
-            } else {
-                updateStatusLabel("No puedes colocar el " + currentShipToPlace.getDisplayName() + 
-                                " ahí. Verificar espacio y orientación.");
+            if (result == ShotResult.WATER) {
+                processMachineTurn();
             }
-        } catch (Exception e) {
-            updateStatusLabel("Error colocando barco: " + e.getMessage());
-            System.err.println("Error en colocación: " + e.getMessage());
+
+            updateStatusLabel();
+            checkGameOver();
+
+        } catch (CellAlreadyShotException e) {
+            System.out.println("Cell already shot: " + e.getMessage());
+            updateStatusLabel("That cell was already shot! Choose another.");
         }
     }
 
     /**
-     * Deshabilita el grid para los disparos (solo cuando no es turno del jugador)
+     * Processes the machine's turn using threads to avoid blocking the interface.
+     * The machine makes its decision after a pause to improve user experience.
      */
-    private void disableGridForShooting() {
-        for (int row = 0; row < Board.SIZE; row++) {
-            for (int col = 0; col < Board.SIZE; col++) {
-                if (!game.getHumanPlayer().getBoard().wasShot(row, col)) {
-                    gridButtons[row][col].setDisable(game.getGameState() != GameState.PLAYER_TURN);
-                }
-            }
-        }
-    }
-
-    /**
-     * Habilita el grid para el turno del jugador
-     */
-    private void enableGridForPlayerTurn() {
-        if (game.getGameState() == GameState.PLAYER_TURN) {
-            for (int row = 0; row < Board.SIZE; row++) {
-                for (int col = 0; col < Board.SIZE; col++) {
-                    // Solo habilitar celdas que no han sido disparadas
-                    if (!game.getHumanPlayer().getBoard().wasShot(row, col)) {
-                        gridButtons[row][col].setDisable(false);
-                    }
-                }
-            }
-        }
-    }
-
     private void processMachineTurn() {
-        if (game.getGameState() != GameState.MACHINE_TURN) {
+        if (game == null || game.getGameState() != GameState.MACHINE_TURN) {
             return;
         }
 
@@ -430,18 +406,14 @@ public class StageController {
         machineTask.setOnSucceeded(e -> {
             ShotResult result = game.processMachineShot();
 
+            // Update player board visualization after machine shot
+            updatePlayerBoardAfterMachineShot();
+
             if (result != ShotResult.WATER && game.getGameState() == GameState.MACHINE_TURN) {
-                Platform.runLater(() -> {
-                    try {
-                        Thread.sleep(500);
-                        processMachineTurn();
-                    } catch (InterruptedException ex) {
-                        Thread.currentThread().interrupt();
-                    }
-                });
-            } else {
-                // Turno del jugador, habilitar grid
-                enableGridForPlayerTurn();
+                // Use PauseTransition instead of Thread.sleep
+                PauseTransition pause = new PauseTransition(Duration.millis(500));
+                pause.setOnFinished(event -> processMachineTurn());
+                pause.play();
             }
 
             updateStatusLabel();
@@ -453,134 +425,161 @@ public class StageController {
         machineThread.start();
     }
 
-    private void updateCellAppearance(int row, int col, ShotResult result) {
-        Button cell = gridButtons[row][col];
+    /**
+     * Updates the visual appearance of a cell after receiving a shot.
+     * Changes color and symbol based on the shot result.
+     *
+     * @param row The row of the shot cell
+     * @param col The column of the shot cell
+     * @param result The shot result (WATER, TOUCH, SUNK, etc.)
+     */
+    private void updateCellAppearanceForShot(int row, int col, ShotResult result) {
+        if (gridButtons == null || row < 0 || row >= Board.SIZE || col < 0 || col >= Board.SIZE) {
+            return;
+        }
 
+        Button cell = gridButtons[row][col];
         switch (result) {
-            case WATER:
-                cell.setText("○");
-                cell.setStyle("-fx-background-color: lightblue; -fx-border-color: black;");
-                break;
             case TOUCH:
+                cell.setStyle("-fx-background-color: orange; -fx-border-color: red; -fx-border-width: 2;");
                 cell.setText("X");
-                cell.setStyle("-fx-background-color: orange; -fx-border-color: black;");
+                break;
+            case WATER:
+                cell.setStyle("-fx-background-color: cyan; -fx-border-color: blue; -fx-border-width: 2;");
+                cell.setText("O");
                 break;
             case SUNK:
-                cell.setText("X");
-                cell.setStyle("-fx-background-color: red; -fx-border-color: black;");
-                break;
-            case ALREADY_SHOT:
-                // No debería llegar aquí, pero por seguridad
-                cell.setText("!");
-                cell.setStyle("-fx-background-color: gray; -fx-border-color: black;");
-                break;
-            case INVALID_SHOT:
-                // No debería llegar aquí, pero por seguridad
-                cell.setText("?");
-                cell.setStyle("-fx-background-color: darkgray; -fx-border-color: black;");
+                cell.setStyle("-fx-background-color: darkred; -fx-border-color: black; -fx-border-width: 2;");
+                cell.setText("💥");
                 break;
         }
         cell.setDisable(true);
     }
 
+    /**
+     * Updates the opponent board visualization.
+     * Placeholder method for future opponent information display functionality.
+     */
     private void updateOpponentDisplay() {
-        if (opponentButtons == null || !showingOpponentBoard) return;
+        if (game == null || opponentButtons == null) return;
 
-        MachinePlayer machine = game.getMachinePlayer();
-        Board machineBoard = machine.getBoard();
+        // Here you can add logic to show opponent information
+        // For example, update a grid that shows made shots
+    }
+
+    /**
+     * Updates the game status label according to the current state.
+     * Shows appropriate messages for each game phase.
+     */
+    private void updateStatusLabel() {
+        if (game == null || statusLabel == null) return;
+
+        GameState state = game.getGameState();
+        switch (state) {
+            case PLAYER_TURN:
+                statusLabel.setText("Your turn - Click on a cell to shoot");
+                break;
+            case MACHINE_TURN:
+                statusLabel.setText("Machine's turn...");
+                break;
+            case GAME_OVER_HUMAN_WINS:
+                statusLabel.setText("Congratulations! You won the naval battle");
+                break;
+            case GAME_OVER_MACHINE_WINS:
+                statusLabel.setText("The machine has won. Better luck next time!");
+                break;
+            default:
+                statusLabel.setText("Preparing the game...");
+                break;
+        }
+    }
+
+    /**
+     * Updates the status label with a custom message.
+     *
+     * @param message The message to show in the status label
+     */
+    private void updateStatusLabel(String message) {
+        if (statusLabel != null) {
+            statusLabel.setText(message);
+        }
+    }
+
+    /**
+     * Checks if the game has ended and disables controls if necessary.
+     * Blocks all board buttons when the game ends.
+     */
+    private void checkGameOver() {
+        if (game == null) return;
+
+        GameState state = game.getGameState();
+        if (state == GameState.GAME_OVER_HUMAN_WINS || state == GameState.GAME_OVER_MACHINE_WINS) {
+            // Disable all grid buttons
+            for (int row = 0; row < Board.SIZE; row++) {
+                for (int col = 0; col < Board.SIZE; col++) {
+                    if (gridButtons[row][col] != null) {
+                        gridButtons[row][col].setDisable(true);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates the player's board visualization after the machine shoots.
+     * Shows received hits and current state of the player's ships.
+     */
+    private void updatePlayerBoardAfterMachineShot() {
+        if (game == null || gridButtons == null) return;
+
+        HumanPlayer human = game.getHumanPlayer();
+        Board board = human.getBoard();
 
         for (int row = 0; row < Board.SIZE; row++) {
             for (int col = 0; col < Board.SIZE; col++) {
-                Button cell = opponentButtons[row][col];
+                if (board.hasShip(row, col)) {
+                    Cell boardCell = board.getCell(row, col);
 
-                if (machineBoard.hasShip(row, col)) {
-                    if (machineBoard.wasShot(row, col)) {
-                        cell.setText("X");
-                        cell.setStyle("-fx-background-color: red; -fx-border-color: black; -fx-font-size: 8px;");
+                    // Check if this cell was hit
+                    if (boardCell.getCellState() == CellState.HIT_SHIP_PART) {
+                        // Show hit on player's ship
+                        gridButtons[row][col].setStyle("-fx-background-color: orange; -fx-border-color: red; -fx-border-width: 2;");
+                        gridButtons[row][col].setText("💥");
+                    } else if (boardCell.getCellState() == CellState.SUNK_SHIP_PART) {
+                        // Sunk ship
+                        gridButtons[row][col].setStyle("-fx-background-color: darkred; -fx-border-color: black; -fx-border-width: 2;");
+                        gridButtons[row][col].setText("💥");
                     } else {
-                        cell.setText("■");
-                        cell.setStyle("-fx-background-color: darkgray; -fx-border-color: black; -fx-font-size: 8px;");
+                        // Unhit ship
+                        gridButtons[row][col].setStyle("-fx-background-color: darkblue; -fx-border-color: white; -fx-border-width: 2;");
+                        gridButtons[row][col].setText("■");
                     }
-                } else if (machineBoard.wasShot(row, col)) {
-                    cell.setText("○");
-                    cell.setStyle("-fx-background-color: lightblue; -fx-border-color: black; -fx-font-size: 8px;");
                 } else {
-                    cell.setText("");
-                    cell.setStyle("-fx-background-color: lightgray; -fx-border-color: black; -fx-font-size: 8px;");
+                    // Check if this water cell was shot
+                    if (board.wasShot(row, col)) {
+                        // Shot water
+                        gridButtons[row][col].setStyle("-fx-background-color: lightblue; -fx-border-color: blue; -fx-border-width: 1;");
+                        gridButtons[row][col].setText("~");
+                    } else {
+                        // Normal water
+                        gridButtons[row][col].setStyle("-fx-background-color: lightcyan; -fx-border-color: navy; -fx-border-width: 1;");
+                        gridButtons[row][col].setText("");
+                    }
                 }
             }
         }
     }
 
+    /**
+     * Toggles the opponent board visualization.
+     * FXML method to handle the show/hide opponent board button.
+     */
     @FXML
     private void toggleOpponentBoard() {
         showingOpponentBoard = !showingOpponentBoard;
-
-        if (showingOpponentBoard) {
-            opponentGrid.setVisible(true);
-            showOpponentButton.setText("Hide opponent's board");
-            updateOpponentDisplay();
-        } else {
-            opponentGrid.setVisible(false);
-            showOpponentButton.setText("Show opponent's board");
+        if (showOpponentButton != null) {
+            showOpponentButton.setText(showingOpponentBoard ? "Hide opponent board" : "Show opponent board");
         }
-    }
-
-    private void updateStatusLabel() {
-        updateStatusLabel(null);
-    }
-
-    private void updateStatusLabel(String customMessage) {
-        String status = "";
-
-        if (customMessage != null) {
-            status = customMessage;
-        } else {
-            switch (game.getGameState()) {
-                case INITIALIZING:
-                    status = "Initializing game...";
-                    break;
-                case SHIP_PLACEMENT:
-                    if (isManualPlacementMode && currentShipToPlace != null) {
-                        status = "Haz clic para colocar: " + currentShipToPlace.getDisplayName() + 
-                               " (Orientación: " + (currentOrientation == Orientation.HORIZONTAL ? "Horizontal" : "Vertical") + ")";
-                    } else {
-                        status = "Placing ships...";
-                    }
-                    break;
-                case PLAYER_TURN:
-                    status = "Your turn - Click on a cell to shoot";
-                    break;
-                case MACHINE_TURN:
-                    status = "Machine's turn...";
-                    break;
-                case GAME_OVER_HUMAN_WINS:
-                    status = "¡Congrats! ¡You won!";
-                    break;
-                case GAME_OVER_MACHINE_WINS:
-                    status = "The machine has won. ¡Try it again!";
-                    break;
-            }
-        }
-        if (statusLabel != null) {
-            statusLabel.setText(status);
-        }
-    }
-
-    private void checkGameOver() {
-        if (game.getGameState() == GameState.GAME_OVER_HUMAN_WINS ||
-                game.getGameState() == GameState.GAME_OVER_MACHINE_WINS) {
-            for (int row = 0; row < Board.SIZE; row++) {
-                for (int col = 0; col < Board.SIZE; col++) {
-                    gridButtons[row][col].setDisable(true);
-                }
-            }
-            if (!showingOpponentBoard) {
-                toggleOpponentBoard();
-            }
-            
-            // Limpiar archivos de guardado cuando el juego termine
-            game.deleteSaveFile();
-        }
+        // Here you can add logic to show/hide opponent grid
     }
 }
